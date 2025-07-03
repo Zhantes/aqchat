@@ -4,7 +4,8 @@ from typing import Dict
 import streamlit as st
 import settings
 from gh import extract_repo_name, GitHubRepo
-from langch_proto2 import ChatPipeline
+from pipelines.abstract_pipeline import AbstractChatPipeline
+from pipelines.chat_rag_pipeline import ChatRAGPipeline
 from auth import has_authorized
 from misc import get_data_dir
 
@@ -22,7 +23,7 @@ def get_repo(repo_url: str, gh_user: str) -> GitHubRepo:
     )
 
 @st.cache_resource
-def get_pipeline(repo_name: str) -> ChatPipeline:
+def get_pipeline(repo_name: str) -> AbstractChatPipeline:
     print(f"[pipeline] making pipeline for {repo_name}")
 
     ollama_url = os.environ.get('OLLAMA_URL', "http://localhost:11434")
@@ -33,7 +34,7 @@ def get_pipeline(repo_name: str) -> ChatPipeline:
 
     data_dir = get_data_dir()
 
-    pipeline = ChatPipeline(
+    pipeline = ChatRAGPipeline(
         ollama_url=ollama_url,
         persist_directory=data_dir / f"chroma/{repo_name}"
     )
@@ -49,7 +50,7 @@ def update_repo(repo: GitHubRepo):
     print(f"[repo,pipeline] syncing {repo.remote_url}")
     repo_name: str = extract_repo_name(repo.remote_url)
 
-    pipeline: ChatPipeline = get_pipeline(repo_name)
+    pipeline: AbstractChatPipeline = get_pipeline(repo_name)
 
     cb = lambda path: pipeline.update_files(path)
     callbacks = {
@@ -214,7 +215,7 @@ def page_chat():
         gh_user: str = config["gh_user"]
 
         repo: GitHubRepo = get_repo(repo_url, gh_user)
-        pipeline: ChatPipeline = get_pipeline(repo.repo_name)
+        pipeline: AbstractChatPipeline = get_pipeline(repo.repo_name)
 
         update_repo(repo)
         st.session_state["gh"] = repo
