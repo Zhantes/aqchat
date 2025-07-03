@@ -2,18 +2,21 @@ import os
 import shutil
 from pathlib import Path
 from threading import Lock
-from typing import Dict, Iterable, List, Sequence
+from typing import Dict, Iterable, List, Sequence, Iterator
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter, Language
+from langchain_core.messages.base import BaseMessageChunk
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import Chroma
 from langchain_community.chat_models import ChatOllama
 from langchain_community.embeddings import FastEmbedEmbeddings
 from langchain.vectorstores.utils import filter_complex_metadata
+from pipelines.abstract_pipeline import AbstractChatPipeline
 
-
-class ChatPipeline:
+class ChatRAGPipeline(AbstractChatPipeline):
     """Retrieval-augmented Q&A over a local Git repository (or any code directory).
+    
+    Uses ollama server as LLM backend, and ChromaDB for embedding vector stores.
 
     * Supports incremental updates (re-ingesting only changed files).
     * Persists its Chroma vector store to disk so that state survives restarts.
@@ -164,7 +167,7 @@ class ChatPipeline:
     # PUBLIC API
     # --------------------------------------------------------------
 
-    def query(self, messages: List[Dict[str, str]]):
+    def query(self, messages: List[Dict[str, str]]) -> Iterator[BaseMessageChunk]:
         """Stream an answer for *messages*.
 
         ``messages`` must be a list of chat messages of the form
