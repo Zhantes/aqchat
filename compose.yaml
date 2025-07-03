@@ -5,10 +5,13 @@ services:
     environment:
       - OLLAMA_URL=${OLLAMA_URL}
       - OLLAMA_MODEL=${OLLAMA_MODEL}
+      - USE_CHAT_PIPELINE=${USE_CHAT_PIPELINE}
       - ANONYMIZED_TELEMETRY=${ANONYMIZED_TELEMETRY}
       - PASSCODE_PIN_FILE=/run/secrets/passcode_pin
       - FRONTEND_DATA_DIR=/app/data
-    build: aqchat
+    build:
+      context: aqchat
+      target: runtime
     restart: always
     networks:
       - frontnet
