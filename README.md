@@ -2,6 +2,8 @@
 
 Copyright (C) 2025 Jacob Farnsworth
 
+<img src="https://github.com/JFarAur/aqchat/raw/main/docs/img001.png" width="720" alt="aqchat interface" />
+
 aqchat is an LLM-powered chat bot that supports retrieval-augmented question-answering over a Git repository. All you have to do is specify a repository address, and optionally, your Github credentials (if your repository is private), then you can ask aqchat questions about your codebase such as:
 
 * Where is `someFunction` or `SomeClass` used?
