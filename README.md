@@ -89,6 +89,27 @@ Now aqchat is running on port 8502 (unless you specified a custom port in the do
 * aqchat will pull from the main branch of the repository every time the Chat page is visited. If you pushed changes to your repo and you wish to sync them with aqchat, simply refresh the page.
 * The internal embedding vector database is not rebuilt from the entire repo on every pull, rather it references the diff since last pull and updates the database only with files added, modified and removed. If there are issues with changes not being visible to aqchat, you can try wiping the vector database and forcing it to regenerate. Unfortunately there is no clean way to do this from within aqchat itself (I blame this on Chroma, which for some reason has very poor support for closing an active session). To wipe the database, shut down the Docker container group and then delete the `frontend_data` volume. Note that this will also delete app configuration and you will need to re-input your Github repository and credentials next time you use aqchat.
 
+## For Developers
+
+If you want to run a local instance of aqchat for development or testing, it is highly recommended to create a venv first. Then you can run the following commands to install dependencies:
+
+```
+pip install -r aqchat/requirements.txt
+pip install -r aqchat/requirements-testing.txt
+```
+
+Once dependencies are installed, you can run the following command in the root directory to start the server:
+
+```
+streamlit run aqchat/app.py --server.address 127.0.0.1
+```
+
+This will create a local data folder `/data` in the root directory. Any repo you connect as well as the Chroma vector stores will be saved here. 
+
+Some recommendations if you're going to work on aqchat:
+
+* If you don't have an ollama server available or don't feel like connecting to one, set `USE_CHAT_PIPELINE=TESTING` in your dotenv file. aqchat will use the testing chat pipeline to give you mock responses, which makes it possible to test many aspects of aqchat (UI, memory, etc) without connecting to ollama server.
+
 ## Acknowledgements
 
 aqchat is built using:
