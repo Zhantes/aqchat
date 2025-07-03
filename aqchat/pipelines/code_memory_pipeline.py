@@ -78,10 +78,12 @@ class CodeMemoryPipeline(AbstractMemoryPipeline):
             try:
                 self.vector_store = Chroma(
                     persist_directory=str(self.persist_directory),
-                    embedding=FastEmbedEmbeddings(),
+                    embedding_function=FastEmbedEmbeddings(),
                 )
                 self._build_chain()  # sets up self.retriever
-            except Exception:
+            except Exception as ex:
+                print(f"WARNING: Could not initialize vector stores from disk: {ex}")
+                
                 # Corrupt or incompatible store – start fresh
                 self.vector_store = None
                 self.retriever = None
