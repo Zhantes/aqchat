@@ -85,3 +85,4 @@ desktop.ini
 .scratch/
 .passcode_pin
 certs/
+.test_temp
