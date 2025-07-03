@@ -1,11 +1,12 @@
 import os
-from typing import Dict, List, Iterator
+from typing import List
 
-from langchain_core.messages.base import BaseMessageChunk
+from langchain_core.documents import Document
 
-class AbstractChatPipeline:
-    """This interface represents an LLM chat pipeline which indexes
-    and maintains a database over some kind of file system.
+class AbstractMemoryPipeline:
+    """This interface represents a pipeline for indexing
+    and maintaining a database over some kind of file system which
+    backs memory retrieval.
 
     NOTE: Implementers of this class MUST be thread-safe as streamlit runs
     multiple worker threads and the pipeline for a given repo will be cached,
@@ -24,15 +25,6 @@ class AbstractChatPipeline:
         """(Re)-index *file_paths* that were modified since the last ingest."""
         raise NotImplementedError
 
-    def query(self, messages: List[Dict[str, str]]) -> Iterator[BaseMessageChunk]:
-        """Stream an answer for *messages*.
-
-        ``messages`` must be a list of chat messages of the form
-        ``[{"role": "user" | "assistant" | "system", "content": "..."}, ...]``.
-        The final user message is treated as the question for retrieval.
-        """
-        raise NotImplementedError
-
     def clear(self) -> None:
         """Clear *in-memory* state - keep the persisted DB intact."""
         raise NotImplementedError
@@ -44,5 +36,12 @@ class AbstractChatPipeline:
     def clear_vector_db(self) -> None:
         """Delete the persisted database on disk and reset state."""
         raise NotImplementedError
+    
+    def ready_for_retrieval(self) -> bool:
+        """Returns True if the pipeline is ready to be used."""
+        raise NotImplementedError
 
+    def invoke(self, input: str) -> List[Document]:
+        """Invoke the memory retriever and return the resulting documents."""
+        raise NotImplementedError
     
