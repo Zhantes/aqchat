@@ -1,0 +1,25 @@
+# Python cache & build artifacts
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+
+# Virtual-envs
+.venv/
+env/
+venv/
+
+# Editor / tooling settings
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Tests & coverage
+htmlcov/
+.coverage
+.pytest_cache/
+
+# OS junk
+.DS_Store
+Thumbs.db

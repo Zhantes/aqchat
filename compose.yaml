@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+  frontend:
+    environment:
+      - OLLAMA_URL=${OLLAMA_URL}
+      - OLLAMA_MODEL=${OLLAMA_MODEL}
+      - ANONYMIZED_TELEMETRY=${ANONYMIZED_TELEMETRY}
+      - PASSCODE_PIN_FILE=/run/secrets/passcode_pin
+      - FRONTEND_DATA_DIR=/app/data
+    build: aqchat
+    restart: always
+    networks:
+      - frontnet
+    expose:
+      - "8501"
+    volumes:
+      - frontend_data:/app/data
+    secrets:
+      - passcode_pin
+
+  proxy:
+    build: proxy
+    restart: always
+    ports:
+      - "${PROXY_HOST}:${PROXY_PORT}:8502"
+    volumes:
+      - ./certs:/etc/nginx/ssl
+    depends_on:
+      - frontend
+    networks:
+      - frontnet
+
+networks:
+  frontnet:
+
+volumes:
+  frontend_data:
+
+secrets:
+  passcode_pin:
+    file: .passcode_pin

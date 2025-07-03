@@ -1,0 +1,70 @@
+import json
+from typing import Dict, Any
+import streamlit as st
+from auth import has_authorized
+from misc import get_data_dir
+
+CONFIG_PATH = get_data_dir() / "config.json"
+CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+@st.cache_resource
+def get_config() -> Dict[str, Any]:
+    if CONFIG_PATH.exists():
+        try:
+            with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass  # fall through to defaults on error
+    return {"repo_url": "", "gh_user": "", "gh_token": ""}
+
+def save_config():
+    """Persist configuration atomically."""
+    config = get_config()
+    CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = CONFIG_PATH.with_suffix(".tmp")
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        json.dump(config, f)
+    tmp_path.replace(CONFIG_PATH)
+
+def has_config() -> bool:
+    config = get_config()
+
+    # we don't require token to be present, in case
+    # user has supplied a public repo
+    config_reqs = [
+        "repo_url" in config,
+        "gh_user" in config
+    ]
+
+    if not all(config_reqs):
+        return False
+    
+    format_reqs = [
+        len(config["repo_url"]) != 0,
+        len(config["gh_user"]) != 0
+    ]
+    
+    if not all(format_reqs):
+        return False
+    
+    return True
+
+def page_settings():
+    st.title("Settings")
+
+    if not has_authorized():
+        st.error("You must login with your PIN passcode before you can access this page.")
+        return
+
+    config = get_config()
+    with st.form(key="settings_form"):
+        repo_url = st.text_input("Repository URL", value=config.get("repo_url", ""))
+        gh_user = st.text_input("Github Username", value=config.get("gh_user", ""))
+        gh_token = st.text_input("Github PAT", value=config.get("gh_token", ""), type="password")
+        saved = st.form_submit_button("Save")
+        if saved:
+            config["repo_url"] = repo_url
+            config["gh_user"] = gh_user
+            config["gh_token"] = gh_token
+            save_config()
+            st.success("Settings saved! Please refresh the app to fully apply changes.")
