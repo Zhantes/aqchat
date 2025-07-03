@@ -4,8 +4,7 @@ from typing import Dict
 import streamlit as st
 import settings
 from gh import extract_repo_name, GitHubRepo
-from pipelines.abstract_pipeline import AbstractChatPipeline
-from pipelines.chat_rag_pipeline import ChatRAGPipeline
+from pipelines import AbstractChatPipeline, AbstractMemoryPipeline, OllamaChatPipeline, CodeMemoryPipeline, TestingChatPipeline
 from auth import has_authorized
 from misc import get_data_dir
 
@@ -23,36 +22,57 @@ def get_repo(repo_url: str, gh_user: str) -> GitHubRepo:
     )
 
 @st.cache_resource
-def get_pipeline(repo_name: str) -> AbstractChatPipeline:
-    print(f"[pipeline] making pipeline for {repo_name}")
-
-    ollama_url = os.environ.get('OLLAMA_URL', "http://localhost:11434")
-    print(f"[pipeline] connecting to ollama server on {ollama_url}")
-
-    ollama_model = os.environ.get('OLLAMA_MODEL', "qwen3:32B")
-    print(f"[pipeline] using model {ollama_model}")
+def get_memory_pipeline(repo_name: str) -> AbstractMemoryPipeline:
+    print(f"[pipeline] making memory pipeline for {repo_name}")
 
     data_dir = get_data_dir()
 
-    pipeline = ChatRAGPipeline(
-        ollama_url=ollama_url,
+    memory = CodeMemoryPipeline(
         persist_directory=data_dir / f"chroma/{repo_name}"
     )
 
     # If the pipeline didn't load the vector store from disk,
     # then we need to process the repo for the first time.
-    if not pipeline.has_vector_db():
-        pipeline.ingest(data_dir / f"repos/{repo_name}")
+    if not memory.has_vector_db():
+        memory.ingest(data_dir / f"repos/{repo_name}")
 
-    return pipeline
+    return memory
+
+@st.cache_resource
+def get_chat_pipeline() -> AbstractChatPipeline:
+    print(f"[pipeline] making chat pipeline")
+
+    pipeline_setting = os.environ.get('USE_CHAT_PIPELINE', "TESTING")
+
+    # If Ollama is specified in the USE_CHAT_PIPELINE environment
+    # variable, then initialize the ollama chat pipeline.
+
+    # Otherwise (as in, by default) initialize the testing pipeline.
+    # In a development environment, this allows us to test
+    # the server without depending on an LLM server.
+    if pipeline_setting == "OLLAMA":
+        ollama_url = os.environ.get('OLLAMA_URL', "http://localhost:11434")
+        print(f"[pipeline] connecting to ollama server on {ollama_url}")
+
+        ollama_model = os.environ.get('OLLAMA_MODEL', "qwen3:32B")
+        print(f"[pipeline] using model {ollama_model}")
+
+        chat_pipeline = OllamaChatPipeline(
+            ollama_url=ollama_url,
+            ollama_model=ollama_model
+        )
+    else:
+        chat_pipeline = TestingChatPipeline()
+    
+    return chat_pipeline
 
 def update_repo(repo: GitHubRepo):
     print(f"[repo,pipeline] syncing {repo.remote_url}")
     repo_name: str = extract_repo_name(repo.remote_url)
 
-    pipeline: AbstractChatPipeline = get_pipeline(repo_name)
+    memory: AbstractMemoryPipeline = get_memory_pipeline(repo_name)
 
-    cb = lambda path: pipeline.update_files(path)
+    cb = lambda path: memory.update_files(path)
     callbacks = {
         "added": [cb],
         "removed": [cb],
@@ -64,7 +84,9 @@ def update_repo(repo: GitHubRepo):
 def get_chat_model():
     "Get an instance of the chat model"
     repo: GitHubRepo = st.session_state["gh"]
-    return lambda messages: get_pipeline(repo.repo_name).query(messages)
+    memory: AbstractMemoryPipeline = get_memory_pipeline(repo.repo_name)
+    chat: AbstractChatPipeline = get_chat_pipeline()
+    return lambda messages: chat.query(memory, messages)
 
 def format_reasoning_response(thinking_content: str):
     """Format the reasoning response for display"""
@@ -215,7 +237,11 @@ def page_chat():
         gh_user: str = config["gh_user"]
 
         repo: GitHubRepo = get_repo(repo_url, gh_user)
-        pipeline: AbstractChatPipeline = get_pipeline(repo.repo_name)
+
+        # we don't do anything with the pipeline here, but getting an instance here will load and cache
+        # it on first page load, if we don't do this then the page will lag when the user clicks
+        # on Chat tab instead
+        pipeline: AbstractMemoryPipeline = get_memory_pipeline(repo.repo_name)
 
         update_repo(repo)
         st.session_state["gh"] = repo
