@@ -4,7 +4,7 @@ from typing import Dict
 import streamlit as st
 import settings
 from gh import extract_repo_name, GitHubRepo
-from pipelines import AbstractChatPipeline, AbstractMemoryPipeline, OllamaChatPipeline, CodeMemoryPipeline
+from pipelines import AbstractChatPipeline, AbstractMemoryPipeline, OllamaChatPipeline, CodeMemoryPipeline, TestingChatPipeline
 from auth import has_authorized
 from misc import get_data_dir
 
@@ -42,17 +42,28 @@ def get_memory_pipeline(repo_name: str) -> AbstractMemoryPipeline:
 def get_chat_pipeline() -> AbstractChatPipeline:
     print(f"[pipeline] making chat pipeline")
 
-    ollama_url = os.environ.get('OLLAMA_URL', "http://localhost:11434")
-    print(f"[pipeline] connecting to ollama server on {ollama_url}")
+    pipeline_setting = os.environ.get('USE_CHAT_PIPELINE', "TESTING")
 
-    ollama_model = os.environ.get('OLLAMA_MODEL', "qwen3:32B")
-    print(f"[pipeline] using model {ollama_model}")
+    # If Ollama is specified in the USE_CHAT_PIPELINE environment
+    # variable, then initialize the ollama chat pipeline.
 
-    chat_pipeline = OllamaChatPipeline(
-        ollama_url=ollama_url,
-        ollama_model=ollama_model
-    )
+    # Otherwise (as in, by default) initialize the testing pipeline.
+    # In a development environment, this allows us to test
+    # the server without depending on an LLM server.
+    if pipeline_setting == "OLLAMA":
+        ollama_url = os.environ.get('OLLAMA_URL', "http://localhost:11434")
+        print(f"[pipeline] connecting to ollama server on {ollama_url}")
 
+        ollama_model = os.environ.get('OLLAMA_MODEL', "qwen3:32B")
+        print(f"[pipeline] using model {ollama_model}")
+
+        chat_pipeline = OllamaChatPipeline(
+            ollama_url=ollama_url,
+            ollama_model=ollama_model
+        )
+    else:
+        chat_pipeline = TestingChatPipeline()
+    
     return chat_pipeline
 
 def update_repo(repo: GitHubRepo):
