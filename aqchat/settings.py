@@ -58,9 +58,9 @@ def page_settings():
 
     config = get_config()
     with st.form(key="settings_form"):
-        repo_url = st.text_input("Repository URL", value=config.get("repo_url", ""))
-        gh_user = st.text_input("Github Username", value=config.get("gh_user", ""))
-        gh_token = st.text_input("Github PAT", value=config.get("gh_token", ""), type="password")
+        repo_url = st.text_input("Repository URL :red[*]", value=config.get("repo_url", ""))
+        gh_user = st.text_input("Your Github Username :red[*]", value=config.get("gh_user", ""))
+        gh_token = st.text_input(f"Github PAT", value=config.get("gh_token", ""), type="password")
         saved = st.form_submit_button("Save")
         if saved:
             config["repo_url"] = repo_url
