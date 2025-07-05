@@ -3,6 +3,7 @@ from typing import Dict, Any
 import streamlit as st
 from auth import has_authorized
 from misc import get_data_dir
+from gh import extract_repo_name
 
 CONFIG_PATH = get_data_dir() / "config.json"
 CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -63,8 +64,13 @@ def page_settings():
         gh_token = st.text_input(f"Github PAT", help="Personal Access Token, only required for private repositories.", value=config.get("gh_token", ""), type="password") # TODO: Find a way to align help tooltip so it's closer to label. Also add instructions on how to find the PAT, I couldn't make the tooltip multi-line.
         saved = st.form_submit_button("Save")
         if saved:
-            config["repo_url"] = repo_url
-            config["gh_user"] = gh_user
-            config["gh_token"] = gh_token
-            save_config()
-            st.success("Settings saved! Please refresh the app to fully apply changes.")
+            try:
+                extract_repo_name(f"{repo_url}")
+            except:
+                st.error("Invalid repository URL, please verify the URL and try again.")
+            else:
+                config["repo_url"] = repo_url
+                config["gh_user"] = gh_user
+                config["gh_token"] = gh_token
+                st.success("Settings saved! Please refresh the app to fully apply changes.")
+                save_config()
