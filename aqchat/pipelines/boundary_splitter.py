@@ -144,6 +144,8 @@ class CodeBoundaryTextSplitter(TextSplitter):
         for i, text in enumerate(texts):
             metadata = metadatas[i] if metadatas else {}
 
+            boundary_detector = None
+
             source: str = metadata.get("source")
             if source:
                 # extract extension from the filename
