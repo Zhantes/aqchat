@@ -3,6 +3,7 @@ GitPython==3.1.44
 langchain==0.3.26
 langchain_community==0.3.26
 langchain_chroma==0.2.4
+langchain_ollama==0.3.3
 fastembed==0.7.1
 chromadb==1.0.13
 streamlit==1.46.1
