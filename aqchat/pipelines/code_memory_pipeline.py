@@ -2,15 +2,16 @@ import os
 import shutil
 from pathlib import Path
 from threading import Lock
-from typing import Iterable, List
+from typing import Iterable, List, Dict
 from langchain_core.documents import Document
 
-from langchain.text_splitter import RecursiveCharacterTextSplitter, Language
 from langchain_community.document_loaders import TextLoader
 from langchain_chroma.vectorstores import Chroma
 from langchain_community.embeddings import FastEmbedEmbeddings
 from langchain_community.vectorstores.utils import filter_complex_metadata
 from pipelines.abstract_memory import AbstractMemoryPipeline
+from pipelines.detectors import CodeBoundaryDetector, PythonBoundaryDetector, RustBoundaryDetector
+from pipelines.boundary_splitter import CodeBoundaryTextSplitter
 
 class CodeMemoryPipeline(AbstractMemoryPipeline):
     """Retrieval-augmented Q&A over a local Git repository (or any code directory).
@@ -41,18 +42,18 @@ class CodeMemoryPipeline(AbstractMemoryPipeline):
         # allocate mutex
         self.lock = Lock()
 
-        # Keep Python / Markdown blocks coherent when splitting
-        self.text_splitter = RecursiveCharacterTextSplitter.from_language(
-            language=Language.PYTHON,
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
-        )
+        # Keep blocks coherent when splitting
+        self.text_splitter = CodeBoundaryTextSplitter(strip_whitespace=False)
+
+        self.boundary_detectors: Dict[str, CodeBoundaryDetector] = {
+            ".py": PythonBoundaryDetector(),
+            ".rs": RustBoundaryDetector()
+        }
 
         # Which file extensions to ingest
         self.include_ext = set(
             include_ext
             or {
-                ".py",
                 ".md",
                 ".rst",
                 ".txt",
@@ -61,6 +62,7 @@ class CodeMemoryPipeline(AbstractMemoryPipeline):
                 ".cfg",
                 ".yaml",
                 ".yml",
+                *self.boundary_detectors.keys(),
             }
         )
 
@@ -102,7 +104,7 @@ class CodeMemoryPipeline(AbstractMemoryPipeline):
             self._repo_root = repo_path  # remember for later updates
 
             docs = self._load_repo(repo_path)
-            chunks = self.text_splitter.split_documents(docs)
+            chunks = self.text_splitter.split_documents(docs, boundary_detectors=self.boundary_detectors)
             chunks = filter_complex_metadata(chunks)
 
             # (Re)‑create vector store on disk
@@ -150,7 +152,7 @@ class CodeMemoryPipeline(AbstractMemoryPipeline):
                 docs.extend(self._load_single_file(abs_path, rel_path))
 
             if docs:
-                chunks = self.text_splitter.split_documents(docs)
+                chunks = self.text_splitter.split_documents(docs, boundary_detectors=self.boundary_detectors)
                 chunks = filter_complex_metadata(chunks)
                 self.vector_store.add_documents(chunks)
 
