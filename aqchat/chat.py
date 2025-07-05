@@ -27,8 +27,25 @@ def get_memory_pipeline(repo_name: str) -> AbstractMemoryPipeline:
 
     data_dir = get_data_dir()
 
+    pipeline_setting = os.environ.get('USE_CHAT_PIPELINE', "TESTING")
+
+    # If Ollama is specified, then we will call the ollama server
+    # for embeddings using the specified embedding model.
+    if pipeline_setting == "OLLAMA":
+        ollama_url = os.environ.get('OLLAMA_URL', "http://localhost:11434")
+        print(f"[pipeline] using embedding from ollama server on {ollama_url}")
+
+        ollama_embedding_model = os.environ.get('OLLAMA_EMBEDDING_MODEL', "unclemusclez/jina-embeddings-v2-base-code")
+        print(f"[pipeline] using embedding model {ollama_embedding_model}")
+    else:
+        ollama_url = None
+        ollama_embedding_model = None
+        print("[pipeline] no ollama server set; using default embedding model")
+
     memory = CodeMemoryPipeline(
-        persist_directory=data_dir / f"chroma/{repo_name}"
+        persist_directory=data_dir / f"chroma/{repo_name}",
+        ollama_url=ollama_url,
+        ollama_embedding_model=ollama_embedding_model
     )
 
     # If the pipeline didn't load the vector store from disk,

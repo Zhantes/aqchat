@@ -8,6 +8,7 @@ from langchain_core.documents import Document
 from langchain_community.document_loaders import TextLoader
 from langchain_chroma.vectorstores import Chroma
 from langchain_community.embeddings import FastEmbedEmbeddings
+from langchain_ollama import OllamaEmbeddings
 from langchain_community.vectorstores.utils import filter_complex_metadata
 from pipelines.abstract_memory import AbstractMemoryPipeline
 from pipelines.detectors import CodeBoundaryDetector, PythonBoundaryDetector, RustBoundaryDetector
@@ -38,6 +39,8 @@ class CodeMemoryPipeline(AbstractMemoryPipeline):
         chunk_overlap: int = 120,
         include_ext: Iterable[str] | None = None,
         persist_directory: os.PathLike | str = "/app/data/chroma",
+        ollama_url: str | None = None,
+        ollama_embedding_model: str | None = None,
     ) -> None:
         # allocate mutex
         self.lock = Lock()
@@ -75,12 +78,17 @@ class CodeMemoryPipeline(AbstractMemoryPipeline):
         self.retriever = None
         self._repo_root: Path | None = None
 
+        if ollama_url is not None:
+            self.embeddings = OllamaEmbeddings(model=ollama_embedding_model, base_url=ollama_url)
+        else:
+            self.embeddings = FastEmbedEmbeddings()
+
         # Try restoring a previously‑saved Chroma collection (if present)
         if any(self.persist_directory.iterdir()):
             try:
                 self.vector_store = Chroma(
                     persist_directory=str(self.persist_directory),
-                    embedding_function=FastEmbedEmbeddings(),
+                    embedding_function=self.embeddings,
                 )
                 self._build_chain()  # sets up self.retriever
             except Exception as ex:
@@ -110,7 +118,7 @@ class CodeMemoryPipeline(AbstractMemoryPipeline):
             # (Re)‑create vector store on disk
             self.vector_store = Chroma.from_documents(
                 documents=chunks,
-                embedding=FastEmbedEmbeddings(),
+                embedding=self.embeddings,
                 persist_directory=str(self.persist_directory),
             )
 
