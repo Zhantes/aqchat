@@ -4,15 +4,17 @@ from gh import extract_repo_name
 #TODO: might put these two test functions in a class, as more unit tests are added
 def test_successful():
     assert extract_repo_name("https://github.com/Zhantes/aqchat") == "aqchat"
-    assert extract_repo_name("https://github.com/JFarAur/aqchat") == "aqchat"
-    assert extract_repo_name("https://github.com/Zhantes/Task-Tracker") == "Task-Tracker"
-    assert extract_repo_name("https://github.com/Zhantes/somereponame") == "somereponame"
+    assert extract_repo_name("https://github.com/Zhantes/aqchat.git") == "aqchat"
+    assert extract_repo_name("git@github.com:JFarAur/aqchat.git") == "aqchat"
 
-def test_error():
+def test_error_nouser_norepo():
     with pytest.raises(ValueError):
         extract_repo_name("https://github.com")
+
+def test_error_norepo():
+    with pytest.raises(ValueError):
         extract_repo_name("https://github.com/JFarAur")
-        extract_repo_name("https://github.com/JFarAur/")
-        extract_repo_name("http://github.com/JFarAur/aqchat")
-        extract_repo_name("github.com/JFarAur/aqchat")
+
+def test_error_notgithub():
+    with pytest.raises(ValueError):
         extract_repo_name("https://google.com")
