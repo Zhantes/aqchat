@@ -61,7 +61,7 @@ def page_settings():
     with st.form(key="settings_form"):
         repo_url = st.text_input("Repository URL :red[*]", value=config.get("repo_url", ""))
         gh_user = st.text_input("Your Github Username :red[*]", value=config.get("gh_user", ""))
-        gh_token = st.text_input(f"Github PAT", help="Personal Access Token, only required for private repositories.", value=config.get("gh_token", ""), type="password") # TODO: Find a way to align help tooltip so it's closer to label. Also add instructions on how to find the PAT, I couldn't make the tooltip multi-line.
+        gh_token = st.text_input("Github PAT", help="Personal Access Token, only required for private repositories.", value=config.get("gh_token", ""), type="password") # TODO: Find a way to align help tooltip so it's closer to label. Also add instructions on how to find the PAT, I couldn't make the tooltip multi-line.
         saved = st.form_submit_button("Save")
         if saved and gh_user and repo_url:
             try:
