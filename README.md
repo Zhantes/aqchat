@@ -44,12 +44,14 @@ PROXY_HOST=127.0.0.1
 PROXY_PORT=8502
 OLLAMA_URL=http://localhost:11434
 OLLAMA_MODEL=qwen3:32B
+OLLAMA_EMBEDDING_MODEL=unclemusclez/jina-embeddings-v2-base-code
 ANONYMIZED_TELEMETRY=False
 USE_CHAT_PIPELINE=OLLAMA
 ```
 
 * `PROXY_HOST` and `PROXY_PORT` will force Docker to bind the proxy server on a specific address. It is highly recommended to keep these settings as-is (if you intend to use aqchat only on your local machine) or change to an IP visible only on a private network (if you intend to work with the same repo with others on a private network).
 * Change `OLLAMA_URL` and `OLLAMA_MODEL` according to your Ollama server details.
+* If `OLLAMA_URL` is specified, then `OLLAMA_EMBEDDING_MODEL` specifies the embedding model to use. If no Ollama URL is specified, then by default FastEmbedEmbedding is used.
 * `ANONYMIZED_TELEMETRY=False` disables Chroma's telemetry feature.
 * `USE_CHAT_PIPELINE` specifies which pipeline to use for chat. `OLLAMA` specifies that Ollama server should be used. Leave this option blank or write `TESTING` in order to use the test chat pipeline; during development this allows you to test the app without connecting to an LLM server.
 
