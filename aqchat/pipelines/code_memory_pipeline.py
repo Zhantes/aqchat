@@ -7,7 +7,7 @@ from langchain_core.documents import Document
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter, Language
 from langchain_community.document_loaders import TextLoader
-from langchain_community.vectorstores import Chroma
+from langchain_chroma.vectorstores import Chroma
 from langchain_community.embeddings import FastEmbedEmbeddings
 from langchain_community.vectorstores.utils import filter_complex_metadata
 from pipelines.abstract_memory import AbstractMemoryPipeline
@@ -111,7 +111,6 @@ class CodeMemoryPipeline(AbstractMemoryPipeline):
                 embedding=FastEmbedEmbeddings(),
                 persist_directory=str(self.persist_directory),
             )
-            self.vector_store.persist()
 
             # Build retriever and QA chain
             self._build_chain()
@@ -154,7 +153,6 @@ class CodeMemoryPipeline(AbstractMemoryPipeline):
                 chunks = self.text_splitter.split_documents(docs)
                 chunks = filter_complex_metadata(chunks)
                 self.vector_store.add_documents(chunks)
-                self.vector_store.persist()
 
             # Refresh retriever so it sees the latest state
             self._build_chain()

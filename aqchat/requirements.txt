@@ -2,6 +2,7 @@ python-dotenv==1.1.1
 GitPython==3.1.44
 langchain==0.3.26
 langchain_community==0.3.26
+langchain_chroma==0.2.4
 fastembed==0.7.1
 chromadb==1.0.13
 streamlit==1.46.1
