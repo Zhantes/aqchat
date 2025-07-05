@@ -65,6 +65,8 @@ struct LogMessage {
     content: String,
 }"""
 
+    assert expected in result
+
 def test_rust_impl():
     """This tests if the splitter can successfully split an impl,
     including function definitions that sit inside.
