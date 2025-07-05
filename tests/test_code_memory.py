@@ -43,7 +43,7 @@ def test_code_memory_invoke_new_extension(memory_pipeline_new):
     """Test querying the memory pipeline with ``invoke`` about
     a text file.
     """
-    documents = memory_pipeline_new.invoke("What file has .txt extension?")
+    documents = memory_pipeline_new.invoke("Which is a plain text document?")
 
     assert len(documents) > 0
 
