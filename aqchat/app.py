@@ -3,7 +3,7 @@ import auth
 import chat
 import settings
 
-login_page = st.Page(auth.page_login, title="PIN Login"),
+login_page = [st.Page(auth.page_login, title="PIN Login")]
 
 pages = [
     st.Page(chat.page_chat, title="Chat"),
