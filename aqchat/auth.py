@@ -24,6 +24,7 @@ def page_login():
 
     if has_authorized():
         st.success("You are already logged in.")
+        st.rerun()
         return
 
     with st.form(key="pin_form"):
@@ -34,5 +35,10 @@ def page_login():
             
             if has_authorized():
                 st.success("Login successful!")
+                st.rerun()
             else:
                 st.error("Incorrect PIN.")
+
+def logout():
+    st.session_state["auth_pin"] = None
+    st.rerun()
