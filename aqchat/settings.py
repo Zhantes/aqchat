@@ -89,7 +89,8 @@ def memory_settings():
     st.title("Memory Settings")
 
     config = get_config()
-    ret_strat = st.selectbox("Retrieval Strategy", ["MMR", "Similarity"], index=0 if config["memory"]["ret_strat"] == "MMR" else 1)
+    ret_strat = ["MMR", "Similarity"]
+    current_index = ret_strat.index(config["memory"]["ret_strat"])
     k_int = st.number_input("k", 1, 10, value=int(config.get("memory", "").get("k_int")))
     disable_widget = ret_strat != "MMR"
     fetch_k = st.number_input("Fetch k", 10, 100, value=int(config.get("memory", "").get("fetch_k")) , disabled=disable_widget)
