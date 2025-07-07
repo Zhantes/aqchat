@@ -81,8 +81,17 @@ def page_settings():
 def memory_settings():
     st.title("Memory Settings")
 
+    config = get_config()
     ret_strat = st.selectbox("Retrieval Strategy", ["MMR", "Similarity"])
     k_int = st.number_input("k", 1, 10, 6)
     disable_widget = ret_strat != "MMR"
     fetch_k = st.number_input("Fetch k", 10, 100, 20, disabled=disable_widget)
     lambda_mult = st.number_input("Lambda mult", 0.0, 1.0, 0.5, disabled=disable_widget)
+    saved = st.button("Save")
+    if saved:
+        config["ret_strat"] = ret_strat
+        config["k_int"] = k_int
+        config["fetch_k"] = fetch_k
+        config["lambda_mult"] = lambda_mult
+        st.success("Settings saved! Please refresh the app to fully apply changes.")
+        save_config()
