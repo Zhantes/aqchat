@@ -8,6 +8,7 @@ login_page = [st.Page(auth.page_login, title="PIN Login")]
 pages = [
     st.Page(chat.page_chat, title="Chat"),
     st.Page(settings.page_settings, title="Settings"),
+    st.Page(settings.page_settings, title="Memory"),
     st.Page(auth.logout, title="Logout")
 ]
 
