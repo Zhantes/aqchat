@@ -18,6 +18,9 @@ def get_config() -> Dict[str, Any]:
             pass  # fall through to defaults on error
     return {"repo_url": "", "gh_user": "", "gh_token": ""}
 
+def get_page_defaults():
+    return {"repo_url": "", "gh_user": "", "gh_token": ""}    
+
 def get_memory_defaults():
     return {"ret_strat" : "MMR", "k_int" : 6, "fetch_k" : 20, "lambda_mult" : 0.5}
 
