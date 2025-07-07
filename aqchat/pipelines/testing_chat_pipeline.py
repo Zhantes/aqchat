@@ -25,6 +25,7 @@ class TestingChatPipeline(AbstractChatPipeline):
     
     def __init__(
         self,
+        memory: AbstractMemoryPipeline = None,
         *,
         response_delay: float = 0.1,
         token_delay: float = 0.05,
@@ -41,6 +42,8 @@ class TestingChatPipeline(AbstractChatPipeline):
         """
         # allocate mutex
         self.lock = Lock()
+
+        self.memory = memory
         
         # Configuration for response simulation
         self.response_delay = response_delay
@@ -48,7 +51,7 @@ class TestingChatPipeline(AbstractChatPipeline):
         self.thinking_delay = thinking_delay
         self.use_context = use_context
     
-    def query(self, memory: AbstractMemoryPipeline, messages: List[Dict[str, str]]) -> Iterator[BaseMessageChunk]:
+    def query(self, messages: List[Dict[str, str]]) -> Iterator[BaseMessageChunk]:
         """Stream a simulated answer for *messages*.
         
         ``messages`` must be a list of chat messages of the form
@@ -56,7 +59,7 @@ class TestingChatPipeline(AbstractChatPipeline):
         The final user message is treated as the question for retrieval.
         """
         with self.lock:
-            if not memory.ready_for_retrieval():
+            if not self.memory.ready_for_retrieval():
                 raise RuntimeError("Call .ingest(<path>) before querying.")
             
             question = self._extract_latest_user_message(messages)
@@ -72,7 +75,7 @@ class TestingChatPipeline(AbstractChatPipeline):
             # Generate main response
             if self.use_context:
                 # Retrieve relevant context for the *current* question only
-                docs = memory.invoke(question)
+                docs = self.memory.invoke(question)
                 context = "\n\n".join(d.page_content for d in docs)
                 response_text = self._generate_contextual_response(question, context)
             else:

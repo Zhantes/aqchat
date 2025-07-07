@@ -1,8 +1,9 @@
 import re
 import os
-from typing import Dict
+from typing import Any, Tuple
 import streamlit as st
 import settings
+from langchain_core.messages import ToolMessage, AIMessageChunk
 from gh import extract_repo_name, GitHubRepo
 from pipelines import AbstractChatPipeline, AbstractMemoryPipeline, OllamaChatPipeline, CodeMemoryPipeline, TestingChatPipeline
 from auth import has_authorized
@@ -56,8 +57,10 @@ def get_memory_pipeline(repo_name: str) -> AbstractMemoryPipeline:
     return memory
 
 @st.cache_resource
-def get_chat_pipeline() -> AbstractChatPipeline:
+def get_chat_pipeline(repo_name: str) -> AbstractChatPipeline:
     print(f"[pipeline] making chat pipeline")
+
+    memory = get_memory_pipeline(repo_name)
 
     pipeline_setting = os.environ.get('USE_CHAT_PIPELINE', "TESTING")
 
@@ -75,11 +78,12 @@ def get_chat_pipeline() -> AbstractChatPipeline:
         print(f"[pipeline] using model {ollama_model}")
 
         chat_pipeline = OllamaChatPipeline(
+            memory=memory,
             ollama_url=ollama_url,
-            ollama_model=ollama_model
+            ollama_model=ollama_model,
         )
     else:
-        chat_pipeline = TestingChatPipeline()
+        chat_pipeline = TestingChatPipeline(memory=memory)
     
     return chat_pipeline
 
@@ -101,139 +105,201 @@ def update_repo(repo: GitHubRepo):
 def get_chat_model():
     "Get an instance of the chat model"
     repo: GitHubRepo = st.session_state["gh"]
-    memory: AbstractMemoryPipeline = get_memory_pipeline(repo.repo_name)
-    chat: AbstractChatPipeline = get_chat_pipeline()
-    return lambda messages: chat.query(memory, messages)
+    chat: AbstractChatPipeline = get_chat_pipeline(repo.repo_name)
+    return lambda messages: chat.query(messages)
 
-def format_reasoning_response(thinking_content: str):
-    """Format the reasoning response for display"""
-    return (
-        thinking_content
-        .replace("<think>", "")
-        .replace("</think>", "")
-    )
+
+# ---------- message UI ----------
+# 
+# Below functions are used for displaying messages already saved
+# in the message history.
+
+def _strip_tags(txt: str, tag: str) -> str:
+    """Remove <think> wrapper. For display inside expander."""
+    return txt.replace(f"<{tag}>", "").replace(f"</{tag}>", "")
+
+def _show_thought(thought: str):
+    """Render one hidden-reasoning block in a collapsible expander."""
+    if thought.strip():
+        with st.expander("Thinking complete!"):
+            st.markdown(_strip_tags(thought, "think"))
+
+def _show_tool(result: str):
+    """Render a tool-call result in its own expander."""
+    if result.strip():
+        with st.expander("Tool result"):
+            st.code(_strip_tags(result, "toolresult"), language=None) # render as plain monospace text
+
+def _show_response(response: str):
+    response = response.rstrip()
+    if response:
+        st.markdown(response)
+
+def _display_assistant(raw: str):
+    """Show stored assistant msg with each <think>...</think> collapsed."""
+    parts = re.split(r"(<(?:think|toolresult)>.*?</(?:think|toolresult)>)", raw, flags=re.DOTALL)
+    for part in parts:
+        if part.startswith("<think>"):
+            _show_thought(part)
+        elif part.startswith("<toolresult>"):
+            _show_tool(part)
+        else:
+            _show_response(part)
 
 def display_messages():
     for msg in st.session_state["messages"]:
+        if msg["role"] == "system":
+            continue
         with st.chat_message(msg["role"]):
-            if msg["role"] == "user":
+            if msg["role"] == "assistant":
+                _display_assistant(msg["content"])
+            else:
                 st.markdown(msg["content"])
 
-            elif msg["role"] == "assistant":
-                pattern = r"<think>(.*?)</think>"
-                match = re.search(pattern, msg["content"], re.DOTALL)
-                if match:
-                    thinking_content = match.group(0)
-                    response_content = msg["content"].replace(thinking_content, "")
-                    thinking_content = format_reasoning_response(thinking_content)
-                    with st.expander("Thinking complete!"):
-                        st.markdown(thinking_content)
-                    st.markdown(response_content)
-                else:
-                    st.markdown(msg["content"])
+# ---------- response stream ----------
+# 
+# Below functions are used for receiving and displaying the streaming
+# response after the latest sent message by the user.
 
-    st.session_state["thinking_spinner"] = st.empty()
+def render_stream(stream) -> str:
+    """
+    Consume the model's streaming output and update the UI live.
+
+    Returns the *full* assistant message to store in chat history:
+       <think>...</think>
+       <toolresult>...</toolresult>
+       <think>...</think>
+       FINAL ANSWER
+    """
+
+    def _receive_think(think_start: str) -> Tuple[str, Any]:
+        think_block = think_start
+        display_block = think_block
+
+        start_think = "<think>" in think_start
+        if start_think:
+            display_block = think_block.split("<think>")[1]
+
+        end_think = False
+        chunk = None
+
+        with st.status("Thinking...", expanded=False) as spinner:
+            thought_area = st.empty()
+
+            while start_think and not end_think:
+                thought_area.markdown(display_block)
+
+                next_chunk = next(stream, None)
+
+                if next_chunk is None or not isinstance(next_chunk, AIMessageChunk):
+                    # unexpected
+                    break
+
+                content = next_chunk.content
+                think_block += content
+
+                end_think = "</think>" in content
+
+                if end_think:
+                    content = content.split("</think>")[0]
+
+                display_block += content
+            
+            if end_think:
+                spinner.update(label="Thinking complete!", state="complete", expanded=False)
+            else:
+                # broke out of the loop due to end of stream, or an unexpected chunk type
+                spinner.update(label="Thinking cancelled!", state="complete", expanded=False)
+
+        return think_block, chunk
+
+    def _receive_tool(tool_body: str) -> Tuple[str, Any]:
+        with st.status("Using Tool...", expanded=False) as spinner:
+            st.code(tool_body, language=None)
+            spinner.update(label="Tool Result", state="complete", expanded=False)
+        return "<toolresult>" + tool_body + "</toolresult>", None
+    
+    def _receive_response(response_start: str) -> Tuple[str, Any]:
+        response_block = response_start
+        end_response = False
+        response_area = st.empty()
+        chunk = None
+
+        while not end_response:
+            response_area.markdown(response_block)
+
+            chunk = next(stream, None)
+
+            if chunk is None or not isinstance(chunk, AIMessageChunk):
+                end_response = True
+            else:
+                response_block += chunk.content
+
+        if not response_block.rstrip():
+            # If the response block does not actually
+            # contain any whitespace characters, then 
+            # we simply reset the area to empty
+            # so that we don't end up displaying a markdown
+            # block with one/a few whitespace characters.
+            response_area.empty()
+
+        return response_block, chunk
+
+    blocks = []
+    final_response = ""
+    next_chunk = None
+
+    while True:
+        if next_chunk:
+            # If there was a next chunk returned from one of the receiver methods,
+            # we need to use it here instead of fetching from the iterator (otherwise
+            # we would end up skipping over a chunk)
+            chunk = next_chunk
+            next_chunk = None
+        else:
+            chunk = next(stream, None)
+
+        if chunk is None:
+            break
+        
+        if isinstance(chunk, ToolMessage):
+            block, next_chunk = _receive_tool(chunk.content)
+            blocks.append(block)
+        elif isinstance(chunk, AIMessageChunk) and chunk.content:
+            if "<think>" in chunk.content:
+                block, next_chunk = _receive_think(chunk.content)
+                blocks.append(block)
+            else:
+                block, next_chunk = _receive_response(chunk.content)
+                block = block.rstrip()
+                if block:
+                    final_response += block
+
+    blocks.append(final_response)
+    
+    return "\n".join(blocks)
 
 def process_input():
-    """Handle user input and return a response from the chat model"""
-    if user_input := st.chat_input("Message", key="user_input"):
-        if len(user_input.strip()) > 0:
-            st.session_state["messages"].append({"role": "user", "content": user_input})
-            with st.chat_message("user"):
-                display_user_message(user_input)
+    user_text = st.chat_input("Message", key="user_input")
+    if not user_text or not user_text.strip():
+        return
 
-            with st.chat_message("assistant"):
-                chat_model = get_chat_model()
-                stream = chat_model(st.session_state["messages"])
+    # show user bubble
+    st.session_state["messages"].append({"role": "user", "content": user_text})
+    with st.chat_message("user"):
+        st.markdown(user_text)
 
-                thinking_content = process_thinking_phase(stream)
-                response_content = process_response_phase(stream)
+    # stream assistant reply
+    with st.chat_message("assistant"):
+        chat_model = get_chat_model()
+        stream = chat_model(st.session_state["messages"])
+        full_msg = render_stream(stream)
 
-                st.session_state["messages"].append(
-                    {"role": "assistant", "content": thinking_content + response_content}
-                )
-
-def process_thinking_phase(stream):
-    """Process the thinking phase of the chat model"""
-    thinking_content = ""
-    with st.status("Thinking...", expanded=False) as status:
-        think_placeholder = st.empty()
-
-        for chunk in stream:
-            content = chunk.content or ""
-            thinking_content += content
-
-            if "<think>" in content:
-                continue
-            if "</think>" in content:
-                content = content.replace("</think>", "")
-                status.update(label="Thinking complete!", state="complete", expanded=False)
-                break
-
-            think_placeholder.markdown(format_reasoning_response(thinking_content))
-
-    return thinking_content
-
-def process_response_phase(stream):
-    """Process the response phase of the chat model"""
-    response_placeholder = st.empty()
-    response_content = ""
-
-    for chunk in stream:
-        content = chunk.content or ""
-        response_content += content
-        response_placeholder.markdown(response_content)
-
-    return response_content
-
-def display_message(message: Dict[str, str]):
-    """Display a message in the chat interface"""
-    role = "user" if message["role"] == "user" else "assistant"
-    with st.chat_message(role):
-        if role == "assistant":
-            display_assistant_message(message["content"])
-        else:
-            display_user_message(message["content"])
-            
-
-def display_user_message(content: str):
-    pattern = r"<context>(.*?)</context>"
-    match = re.search(pattern, content, re.DOTALL)
-    if match:
-        thinking_content = match.group(0)
-        response_content = content.replace(thinking_content, "")
-        st.markdown(response_content)
-    else:
-        st.markdown(content)
-
-
-def display_assistant_message(content: str):
-    """Display assistant message with thinking content if present"""
-    pattern = r"<think>(.*?)</think>"
-    match = re.search(pattern, content, re.DOTALL)
-    if match:
-        thinking_content = match.group(0)
-        response_content = content.replace(thinking_content, "")
-        thinking_content = format_reasoning_response(thinking_content)
-        with st.expander("Thinking complete!"):
-            st.markdown(thinking_content)
-        st.markdown(response_content)
-    else:
-        st.markdown(content)
-
-def format_reasoning_response(thinking_content: str):
-    """Format the reasoning response for display"""
-    return (
-        thinking_content
-        .replace("<think>", "")
-        .replace("</think>", "")
+    # save assistant reply
+    st.session_state["messages"].append(
+        {"role": "assistant", "content": full_msg}
     )
 
-def display_chat_history():
-    """Display all previous messages in the chat history."""
-    for message in st.session_state["messages"]:
-        if message["role"] != "system":  # Skip system messages
-            display_message(message)
 
 def page_chat():
     st.title("Chat")

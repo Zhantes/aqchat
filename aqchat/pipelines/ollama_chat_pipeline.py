@@ -1,8 +1,10 @@
 from threading import Lock
 from typing import Dict, List, Sequence, Iterator
 
+from langchain_core.tools import tool
 from langchain_core.messages.base import BaseMessageChunk
-from langchain_community.chat_models import ChatOllama
+from langchain_openai import ChatOpenAI
+from langgraph.prebuilt import create_react_agent
 from pipelines.abstract_chat import AbstractChatPipeline
 from pipelines.abstract_memory import AbstractMemoryPipeline
 
@@ -20,6 +22,7 @@ class OllamaChatPipeline(AbstractChatPipeline):
 
     def __init__(
         self,
+        memory: AbstractMemoryPipeline = None,
         *,
         ollama_model: str = "qwen3:32B",
         ollama_url: str | None = None,
@@ -28,45 +31,47 @@ class OllamaChatPipeline(AbstractChatPipeline):
         self.lock = Lock()
 
         # Connect to Ollama
-        self.model = ChatOllama(model=ollama_model, base_url=ollama_url)
+        # ChatOllama does not support tool calling unfortunately.
+        # However, ollama provides an OpenAI-compatible API wrapper, so we can use
+        # ChatOpenAI, which *does* work with tool calling.
+        self.model = ChatOpenAI(model=ollama_model, base_url=ollama_url + "/v1", api_key="ollama")
 
-    def query(self, memory: AbstractMemoryPipeline, messages: List[Dict[str, str]]) -> Iterator[BaseMessageChunk]:
+        self.tools = []
+        self.memory = memory
+
+        if memory:
+            @tool
+            def search(query: str) -> str:
+                """Search the codebase with a natural-language query."""
+                docs = self.memory.invoke(query)
+                return "\n\n".join([f"{doc.metadata}\n{doc.page_content}" for doc in docs])
+        
+            self.tools.append(search)
+
+        system_message = "You are an assistant for question-answering tasks in a codebase."
+
+        self.agent_executor = create_react_agent(self.model, self.tools, prompt=system_message)
+
+    def query(self, messages: List[Dict[str, str]]) -> Iterator[BaseMessageChunk]:
         """Stream an answer for *messages*.
 
         ``messages`` must be a list of chat messages of the form
         ``[{"role": "user" | "assistant" | "system", "content": "..."}, ...]``.
-        The final user message is treated as the question for retrieval.
         """
         with self.lock:
-            if not memory.ready_for_retrieval():
+            if self.memory and not self.memory.ready_for_retrieval():
                 raise RuntimeError("Call .ingest(<path>) before querying.")
+            
+            # When we call agent executor's stream, the response is a stream of tuples, where the first
+            # item in the tuple is an AIMessageChunk. chat UI code is expecting a stream of AIMessageChunk objects,
+            # so we need an iterator that transforms the output into the correct form.
+            def transform_first_element(iterator):
+                for item in iterator:
+                    yield item[0]
+            
+            streaming_response = self.agent_executor.stream({"messages": messages}, stream_mode="messages")
 
-            question = self._extract_latest_user_message(messages)
-            if question is None:
-                raise ValueError("No user message found in conversation history.")
-
-            # Retrieve relevant context for the *current* question only
-            docs = memory.invoke(question)
-            context = "\n\n".join(d.page_content for d in docs)
-
-            # Assemble an augmented conversation. Two system messages:
-            #   1) Instructions for the assistant
-            #   2) The retrieval‑augmented context
-            instruct_msg = {
-                "role": "system",
-                "content": (
-                    "You are an assistant for question-answering tasks. "
-                    "Use the provided context to answer questions to the best of your ability."
-                ),
-            }
-            context_msg = {
-                "role": "system",
-                "content": f"Context:\n{context}",
-            }
-
-            chat_history: Sequence[Dict[str, str]] = [instruct_msg] + messages + [context_msg]
-            return self.model.stream(chat_history)
-    
+            return transform_first_element(streaming_response)
 
     def _extract_latest_user_message(self, messages: List[Dict[str, str]]) -> str | None:
         """Return the content of the *most recent* user message, or ``None``."""
