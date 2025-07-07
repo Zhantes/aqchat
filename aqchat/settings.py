@@ -16,14 +16,14 @@ def get_config() -> Dict[str, Any]:
                 return json.load(f)
         except Exception:
             pass  # fall through to defaults on error
-    return {"settings" : get_page_defaults(),
-            "memory" : get_memory_defaults()}
+    return {"settings": get_page_defaults(),
+            "memory": get_memory_defaults()}
 
 def get_page_defaults():
     return {"repo_url": "", "gh_user": "", "gh_token": ""}    
 
 def get_memory_defaults():
-    return {"ret_strat" : "MMR", "k_int" : 6, "fetch_k" : 20, "lambda_mult" : 0.5}
+    return {"ret_strat": "MMR", "k_int": 6, "fetch_k": 20, "lambda_mult": 0.5}
 
 def save_config():
     """Persist configuration atomically."""
