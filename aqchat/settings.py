@@ -97,7 +97,6 @@ def memory_settings():
     lambda_mult = st.number_input("Lambda mult", 0.0, 1.0, value=float(config.get("memory", "").get("lambda_mult")), disabled=disable_widget)
     saved = st.button("Save")
     if saved:
-        st.session_state.saved_ret_strat = ret_strat
         config["memory"]["ret_strat"] = ret_strat
         config["memory"]["k_int"] = k_int
         config["memory"]["fetch_k"] = fetch_k
