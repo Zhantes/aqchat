@@ -16,7 +16,8 @@ def get_config() -> Dict[str, Any]:
                 return json.load(f)
         except Exception:
             pass  # fall through to defaults on error
-    return {"repo_url": "", "gh_user": "", "gh_token": ""}
+    return {"settings" : get_page_defaults(),
+            "memory" : get_memory_defaults()}
 
 def get_page_defaults():
     return {"repo_url": "", "gh_user": "", "gh_token": ""}    
