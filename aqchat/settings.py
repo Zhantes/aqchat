@@ -77,3 +77,12 @@ def page_settings():
                     save_config()
             else:
                 st.error("Please fill all required fields.")
+
+def memory_settings():
+    st.title("Memory Settings")
+
+    ret_strat = st.selectbox("Retrieval Strategy", ["MMR", "Similarity"])
+    k_int = st.number_input("k", 1, 10, 6)
+    disable_widget = ret_strat != "MMR"
+    fetch_k = st.number_input("Fetch k", 10, 100, 20, disabled=disable_widget)
+    lambda_mult = st.number_input("Lambda mult", 0.0, 1.0, 0.5, disabled=disable_widget)
