@@ -145,3 +145,6 @@ def chat_settings():
             config["chat"]["min_p"] = min_p
             st.success("Settings saved! Please refresh the app to fully apply changes.")
             save_config()
+
+def settings_main():
+    pass
