@@ -4,7 +4,6 @@ import streamlit as st
 from auth import has_authorized
 from misc import get_data_dir
 from gh import extract_repo_name
-from dotenv import load_dotenv
 import os
 
 CONFIG_PATH = get_data_dir() / "config.json"
@@ -163,8 +162,6 @@ def settings_main():
         llm_details()
 
 def llm_details():
-    load_dotenv()
-
     if os.getenv("USE_CHAT_PIPELINE") == "TESTING":
         st.write("Using Test LLM")
     else:
