@@ -52,9 +52,13 @@ def get_memory_pipeline(repo_name: str) -> AbstractMemoryPipeline:
 
     return memory
 
-@st.cache_resource
 def get_chat_pipeline(repo_name: str) -> AbstractChatPipeline:
-    print(f"[pipeline] making chat pipeline")
+    chat_pipeline = st.session_state.get("chat_pipeline")
+    if chat_pipeline:
+        print(f"[pipeline] acquired existing chat pipeline for {repo_name}")
+        return chat_pipeline
+
+    print(f"[pipeline] making chat pipeline for {repo_name}")
 
     memory = get_memory_pipeline(repo_name)
 
@@ -81,6 +85,7 @@ def get_chat_pipeline(repo_name: str) -> AbstractChatPipeline:
     else:
         chat_pipeline = TestingChatPipeline(memory=memory)
     
+    st.session_state["chat_pipeline"] = chat_pipeline
     return chat_pipeline
 
 def update_repo(repo: GitHubRepo):
