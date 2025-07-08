@@ -17,10 +17,23 @@ def get_config() -> Dict[str, Any]:
         except Exception:
             pass  # fall through to defaults on error
     return {"repo_url": "", "gh_user": "", "gh_token": "",
-            "memory": get_memory_defaults()}
+            "memory": get_memory_defaults(),
+            "chat": get_chat_defaults()}
+
+def get_chat_defaults():
+    return {"num_ctx": 2048, 
+            "temperature": 0.8, 
+            "repeat_last_n": 64, 
+            "repeat_penalty": 1.1, 
+            "top_k": 40, 
+            "top_p": 0.9, 
+            "min_p": 0.0}
 
 def get_memory_defaults():
-    return {"ret_strat": "MMR", "k_int": 6, "fetch_k": 20, "lambda_mult": 0.5}
+    return {"ret_strat": "mmr", 
+            "k_int": 6, 
+            "fetch_k": 20, 
+            "lambda_mult": 0.5}
 
 def save_config():
     """Persist configuration atomically."""
@@ -86,17 +99,49 @@ def memory_settings():
     st.title("Memory Settings")
 
     config = get_config()
-    ret_strat = ["MMR", "Similarity"]
-    current_index = ret_strat.index(config["memory"]["ret_strat"])
+    dict_options = ["mmr", "similarity"]
+    options = ["MMR", "Similarity"]
+    ret_strat = st.selectbox("Retrieval Strategy", options, index=dict_options.index(config["memory"]["ret_strat"]))
+    current_index = options.index(ret_strat)
     k_int = st.number_input("k", 1, 10, value=int(config["memory"]["k_int"]))
     disable_widget = ret_strat != "MMR"
     fetch_k = st.number_input("Fetch k", 10, 100, value=int(config["memory"]["fetch_k"]) , disabled=disable_widget)
     lambda_mult = st.number_input("Lambda mult", 0.0, 1.0, value=float(config["memory"]["lambda_mult"]), disabled=disable_widget)
     saved = st.button("Save")
     if saved:
-        config["memory"]["ret_strat"] = ret_strat
+        config["memory"]["ret_strat"] = dict_options[current_index]
         config["memory"]["k_int"] = k_int
         config["memory"]["fetch_k"] = fetch_k
         config["memory"]["lambda_mult"] = lambda_mult
         st.success("Settings saved! Please refresh the app to fully apply changes.")
         save_config()
+
+def chat_settings():
+    st.title("Chat Settings")
+    config=get_config()
+
+    with st.form(key="chat_settings"):
+        with st.container(border=True) as context:
+            st.header("Context")
+            num_ctx = st.number_input("num_ctx", 512, 131072, value=int(config["chat"]["num_ctx"]))
+
+        with st.container(border=True) as generation:
+            st.header("Generation")
+            temperature = st.number_input("temperature", 0.0, 1.0, value=float(config["chat"]["temperature"]))
+            repeat_last_n = st.number_input("repeat_last_n", -1, 512, value=int(config["chat"]["repeat_last_n"]))
+            repeat_penalty = st.number_input("repeat_penalty", 0.0, 2.0, value=float(config["chat"]["repeat_penalty"]))
+            top_k = st.number_input("top_k", 0, 100, value=int(config["chat"]["top_k"]))
+            top_p = st.number_input("top_p", 0.0, 1.0, value=float(config["chat"]["top_p"]))
+            min_p = st.number_input("min_p", 0.0, 1.0, value=float(config["chat"]["min_p"]))
+            
+        saved = st.form_submit_button("Save")
+        if saved:
+            config["chat"]["num_ctx"] = num_ctx
+            config["chat"]["temperature"] = temperature
+            config["chat"]["repeat_last_n"] = repeat_last_n
+            config["chat"]["repeat_penalty"] = repeat_penalty
+            config["chat"]["top_k"] = top_k
+            config["chat"]["top_p"] = top_p
+            config["chat"]["min_p"] = min_p
+            st.success("Settings saved! Please refresh the app to fully apply changes.")
+            save_config()
