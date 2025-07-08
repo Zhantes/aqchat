@@ -102,4 +102,33 @@ def memory_settings():
         save_config()
 
 def chat_settings():
-    pass
+    st.title("Chat Settings")
+    config=get_config()
+
+    context = st.container(border=True)
+    generation = st.container(border=True)
+
+    with context:
+        st.header("Context")
+        num_ctx = st.number_input("num_ctx", 512, 131072, value=config["chat"]["num_ctx"])
+
+    with generation:
+        st.header("Generation")
+        temperature = st.number_input("temperature", 0.0, 1.0, value=config["chat"]["temperature"])
+        repeat_last_n = st.number_input("repeat_last_n", -1, 512, value=config["chat"]["repeat_last_n"])
+        repeat_penalty = st.number_input("repeat_penalty", 0.0, 2.0, value=config["chat"]["repeat_penalty"])
+        top_k = st.number_input("top_k", 0, 100, value=config["chat"]["top_k"])
+        top_p = st.number_input("top_p", 0.0, 1.0, value=config["chat"]["top_p"])
+        min_p = st.number_input("min_p", 0.0, 1.0, value=config["chat"]["min_p"])
+        
+    saved = st.button("Save")
+    if saved:
+        config["chat"]["num_ctx"] = num_ctx
+        config["chat"]["temperature"] = temperature
+        config["chat"]["repeat_last_n"] = repeat_last_n
+        config["chat"]["repeat_penalty"] = repeat_penalty
+        config["chat"]["top_k"] = top_k
+        config["chat"]["top_p"] = top_p
+        config["chat"]["min_p"] = min_p
+        st.success("Settings saved! Please refresh the app to fully apply changes.")
+        save_config()
