@@ -1,5 +1,5 @@
 from threading import Lock
-from typing import Dict, List, Sequence, Iterator
+from typing import Dict, List, Any, Iterator
 
 from langchain_core.tools import tool
 from langchain_core.messages.base import BaseMessageChunk
@@ -26,6 +26,7 @@ class OllamaChatPipeline(AbstractChatPipeline):
         *,
         ollama_model: str = "qwen3:32B",
         ollama_url: str | None = None,
+        chat_settings: Dict[str, Any] = None
     ) -> None:
         # allocate mutex
         self.lock = Lock()
@@ -34,7 +35,11 @@ class OllamaChatPipeline(AbstractChatPipeline):
         # ChatOllama does not support tool calling unfortunately.
         # However, ollama provides an OpenAI-compatible API wrapper, so we can use
         # ChatOpenAI, which *does* work with tool calling.
-        self.model = ChatOpenAI(model=ollama_model, base_url=ollama_url + "/v1", api_key="ollama")
+        self.model = ChatOpenAI(model=ollama_model,
+                                base_url=ollama_url + "/v1",
+                                api_key="ollama",
+                                temperature=chat_settings.get("temperature") if chat_settings else None,
+                                )
 
         self.tools = []
         self.memory = memory

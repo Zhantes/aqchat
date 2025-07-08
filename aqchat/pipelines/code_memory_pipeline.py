@@ -2,7 +2,7 @@ import os
 import shutil
 from pathlib import Path
 from threading import Lock
-from typing import Iterable, List, Dict
+from typing import Iterable, List, Dict, Any
 from langchain_core.documents import Document
 
 from langchain_community.document_loaders import TextLoader
@@ -41,9 +41,17 @@ class CodeMemoryPipeline(AbstractMemoryPipeline):
         persist_directory: os.PathLike | str = "/app/data/chroma",
         ollama_url: str | None = None,
         ollama_embedding_model: str | None = None,
+        retrieval_settings: Dict[str, Any] = {
+            "ret_strat": "mmr",
+            "k": 6,
+            "fetch_k": 20,
+            "lambda_mult": 0.5
+        },
     ) -> None:
         # allocate mutex
         self.lock = Lock()
+
+        self.retrieval_settings = retrieval_settings
 
         # Keep blocks coherent when splitting
         self.text_splitter = CodeBoundaryTextSplitter(strip_whitespace=False)
@@ -211,6 +219,28 @@ class CodeMemoryPipeline(AbstractMemoryPipeline):
                 shutil.rmtree(self.persist_directory)
                 self.persist_directory.mkdir(parents=True, exist_ok=True)
 
+    def set_retrieval_settings(self, retrieval_settings: Dict[str, Any]) -> None:
+        """Update retrieval settings.
+        
+        Retrieval settings MUST be a dict of the form:
+
+        ```
+        {
+            "ret_strat": "mmr", "k": 6, "fetch_k": 20, "lambda_mult": 0.5
+        }
+        ```
+
+        OR:
+        ```
+        {
+            "ret_strat": "similarity", "k": 4
+        }
+        ```
+        """
+        with self.lock:
+            self.retrieval_settings = retrieval_settings
+            self._build_chain()
+
     # --------------------------------------------------------------
     # INTERNAL HELPERS
     # --------------------------------------------------------------
@@ -219,10 +249,27 @@ class CodeMemoryPipeline(AbstractMemoryPipeline):
         """(Re)-create the retriever after any vector-store change."""
         if not self.vector_store:
             raise RuntimeError("Vector store must be initialised before building the retriever.")
+        
+        ret_strat = self.retrieval_settings["ret_strat"]
+
+        if ret_strat == "mmr":
+            search_settings = {
+                "k": self.retrieval_settings["k"],
+                "fetch_k": self.retrieval_settings["fetch_k"],
+                "lambda_mult": self.retrieval_settings["lambda_mult"]
+            }
+        elif ret_strat == "similarity":
+            # omit other settings in case similarity is selected
+            search_settings = {
+                "k": self.retrieval_settings["k"]
+            }
+        else:
+            ret_strat = None
+            search_settings = None
 
         self.retriever = self.vector_store.as_retriever(
-            search_type="mmr",
-            search_kwargs={"k": 6, "fetch_k": 20, "lambda_mult": 0.7},
+            search_type=ret_strat,
+            search_kwargs=search_settings,
         )
 
     # ----------------- File‑system helpers ---------------------------
