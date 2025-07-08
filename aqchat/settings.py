@@ -16,7 +16,11 @@ def get_config() -> Dict[str, Any]:
                 return json.load(f)
         except Exception:
             pass  # fall through to defaults on error
-    return {"repo_url": "", "gh_user": "", "gh_token": ""}
+    return {"repo_url": "", "gh_user": "", "gh_token": "",
+            "memory": get_memory_defaults()}
+
+def get_memory_defaults():
+    return {"ret_strat": "MMR", "k_int": 6, "fetch_k": 20, "lambda_mult": 0.5}
 
 def save_config():
     """Persist configuration atomically."""
@@ -77,3 +81,22 @@ def page_settings():
                     save_config()
             else:
                 st.error("Please fill all required fields.")
+
+def memory_settings():
+    st.title("Memory Settings")
+
+    config = get_config()
+    ret_strat = ["MMR", "Similarity"]
+    current_index = ret_strat.index(config["memory"]["ret_strat"])
+    k_int = st.number_input("k", 1, 10, value=int(config["memory"]["k_int"]))
+    disable_widget = ret_strat != "MMR"
+    fetch_k = st.number_input("Fetch k", 10, 100, value=int(config["memory"]["fetch_k"]) , disabled=disable_widget)
+    lambda_mult = st.number_input("Lambda mult", 0.0, 1.0, value=float(config["memory"]["lambda_mult"]), disabled=disable_widget)
+    saved = st.button("Save")
+    if saved:
+        config["memory"]["ret_strat"] = ret_strat
+        config["memory"]["k_int"] = k_int
+        config["memory"]["fetch_k"] = fetch_k
+        config["memory"]["lambda_mult"] = lambda_mult
+        st.success("Settings saved! Please refresh the app to fully apply changes.")
+        save_config()
