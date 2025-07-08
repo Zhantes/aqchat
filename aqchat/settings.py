@@ -88,10 +88,10 @@ def memory_settings():
     config = get_config()
     ret_strat = ["MMR", "Similarity"]
     current_index = ret_strat.index(config["memory"]["ret_strat"])
-    k_int = st.number_input("k", 1, 10, value=int(config.get("memory", "").get("k_int")))
+    k_int = st.number_input("k", 1, 10, value=int(config["memory"]["k_int"]))
     disable_widget = ret_strat != "MMR"
-    fetch_k = st.number_input("Fetch k", 10, 100, value=int(config.get("memory", "").get("fetch_k")) , disabled=disable_widget)
-    lambda_mult = st.number_input("Lambda mult", 0.0, 1.0, value=float(config.get("memory", "").get("lambda_mult")), disabled=disable_widget)
+    fetch_k = st.number_input("Fetch k", 10, 100, value=int(config["memory"]["fetch_k"]) , disabled=disable_widget)
+    lambda_mult = st.number_input("Lambda mult", 0.0, 1.0, value=float(config["memory"]["lambda_mult"]), disabled=disable_widget)
     saved = st.button("Save")
     if saved:
         config["memory"]["ret_strat"] = ret_strat
