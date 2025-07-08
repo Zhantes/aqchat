@@ -146,16 +146,16 @@ def chat_settings():
     with st.form(key="chat_settings"):
         with st.container(border=True) as context:
             st.header("Context")
-            num_ctx = st.number_input("num_ctx", 512, 131072, value=int(config["chat"]["num_ctx"]))
+            num_ctx = st.number_input("num_ctx", 512, 131072, value=int(config["chat"]["num_ctx"]), disabled=True)
 
         with st.container(border=True) as generation:
             st.header("Generation")
             temperature = st.number_input("temperature", 0.0, 1.0, value=float(config["chat"]["temperature"]))
-            repeat_last_n = st.number_input("repeat_last_n", -1, 512, value=int(config["chat"]["repeat_last_n"]))
-            repeat_penalty = st.number_input("repeat_penalty", 0.0, 2.0, value=float(config["chat"]["repeat_penalty"]))
-            top_k = st.number_input("top_k", 0, 100, value=int(config["chat"]["top_k"]))
-            top_p = st.number_input("top_p", 0.0, 1.0, value=float(config["chat"]["top_p"]))
-            min_p = st.number_input("min_p", 0.0, 1.0, value=float(config["chat"]["min_p"]))
+            repeat_last_n = st.number_input("repeat_last_n", -1, 512, value=int(config["chat"]["repeat_last_n"]), disabled=True)
+            repeat_penalty = st.number_input("repeat_penalty", 0.0, 2.0, value=float(config["chat"]["repeat_penalty"]), disabled=True)
+            top_k = st.number_input("top_k", 0, 100, value=int(config["chat"]["top_k"]), disabled=True)
+            top_p = st.number_input("top_p", 0.0, 1.0, value=float(config["chat"]["top_p"]), disabled=True)
+            min_p = st.number_input("min_p", 0.0, 1.0, value=float(config["chat"]["min_p"]), disabled=True)
             
         saved = st.form_submit_button("Save")
         if saved:
