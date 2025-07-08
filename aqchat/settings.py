@@ -8,17 +8,40 @@ from gh import extract_repo_name
 CONFIG_PATH = get_data_dir() / "config.json"
 CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
 
+def add_missing_defaults(config: Dict[str, Any], defaults: Dict[str, Any]) -> None:
+    """Recursively add missing defaults to a config dict.
+
+    Entries are added or updated in-place. If `defaults` contains nested
+    dicts, the corresponding dicts in `config` are also updated.
+    
+    Args
+    --
+        config: A dict with no, some, or all entries filled in.
+
+        defaults: A dict containing defaults to fill in.
+    """
+    for key, val in defaults.items():
+        if key not in config:
+            config[key] = val
+        elif isinstance(val, dict):
+            add_missing_defaults(config[key], val)
+
 @st.cache_resource
 def get_config() -> Dict[str, Any]:
+    config_defaults = {
+        "repo_url": "", "gh_user": "", "gh_token": "",
+        "memory": get_memory_defaults(),
+        "chat": get_chat_defaults()
+    }
     if CONFIG_PATH.exists():
         try:
             with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-                return json.load(f)
+                config = json.load(f)
+                add_missing_defaults(config, config_defaults)
+                return config
         except Exception:
             pass  # fall through to defaults on error
-    return {"repo_url": "", "gh_user": "", "gh_token": "",
-            "memory": get_memory_defaults(),
-            "chat": get_chat_defaults()}
+    return config_defaults
 
 def get_chat_defaults():
     return {"num_ctx": 2048, 
