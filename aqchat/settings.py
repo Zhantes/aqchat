@@ -24,7 +24,7 @@ def get_chat_defaults():
     return {"num_ctx": 2048, "temperature": 0.8, "repeat_last_n": 64, "repeat_penalty": 1.1, "top_k": 40, "top_p": 0.9, "min_p": 0.0}
 
 def get_memory_defaults():
-    return {"ret_strat": "MMR", "k_int": 6, "fetch_k": 20, "lambda_mult": 0.5}
+    return {"current_index": 0, "k_int": 6, "fetch_k": 20, "lambda_mult": 0.5}
 
 def save_config():
     """Persist configuration atomically."""
@@ -90,15 +90,14 @@ def memory_settings():
     st.title("Memory Settings")
 
     config = get_config()
-    ret_strat = ["MMR", "Similarity"]
-    current_index = ret_strat.index(config["memory"]["ret_strat"])
+    ret_strat = st.selectbox("Retrieval Strategy", ["MMR", "Similarity"], index=config["memory"]["current_index"])
     k_int = st.number_input("k", 1, 10, value=int(config["memory"]["k_int"]))
     disable_widget = ret_strat != "MMR"
     fetch_k = st.number_input("Fetch k", 10, 100, value=int(config["memory"]["fetch_k"]) , disabled=disable_widget)
     lambda_mult = st.number_input("Lambda mult", 0.0, 1.0, value=float(config["memory"]["lambda_mult"]), disabled=disable_widget)
     saved = st.button("Save")
     if saved:
-        config["memory"]["ret_strat"] = ret_strat
+        config["memory"]["current_index"] = 0 if ret_strat == "MMR" else 1
         config["memory"]["k_int"] = k_int
         config["memory"]["fetch_k"] = fetch_k
         config["memory"]["lambda_mult"] = lambda_mult
@@ -114,16 +113,16 @@ def chat_settings():
 
     with context:
         st.header("Context")
-        num_ctx = st.number_input("num_ctx", 512, 131072, value=config["chat"]["num_ctx"])
+        num_ctx = st.number_input("num_ctx", 512, 131072, value=int(config["chat"]["num_ctx"]))
 
     with generation:
         st.header("Generation")
-        temperature = st.number_input("temperature", 0.0, 1.0, value=config["chat"]["temperature"])
-        repeat_last_n = st.number_input("repeat_last_n", -1, 512, value=config["chat"]["repeat_last_n"])
-        repeat_penalty = st.number_input("repeat_penalty", 0.0, 2.0, value=config["chat"]["repeat_penalty"])
-        top_k = st.number_input("top_k", 0, 100, value=config["chat"]["top_k"])
-        top_p = st.number_input("top_p", 0.0, 1.0, value=config["chat"]["top_p"])
-        min_p = st.number_input("min_p", 0.0, 1.0, value=config["chat"]["min_p"])
+        temperature = st.number_input("temperature", 0.0, 1.0, value=float(config["chat"]["temperature"]))
+        repeat_last_n = st.number_input("repeat_last_n", -1, 512, value=int(config["chat"]["repeat_last_n"]))
+        repeat_penalty = st.number_input("repeat_penalty", 0.0, 2.0, value=float(config["chat"]["repeat_penalty"]))
+        top_k = st.number_input("top_k", 0, 100, value=int(config["chat"]["top_k"]))
+        top_p = st.number_input("top_p", 0.0, 1.0, value=float(config["chat"]["top_p"]))
+        min_p = st.number_input("min_p", 0.0, 1.0, value=float(config["chat"]["min_p"]))
         
     saved = st.button("Save")
     if saved:
