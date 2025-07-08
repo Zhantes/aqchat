@@ -68,7 +68,7 @@ def has_config() -> bool:
     return True
 
 def page_settings():
-    st.title("Settings")
+    st.header("Git Settings")
 
     if not has_authorized():
         st.error("You must login with your PIN passcode before you can access this page.")
@@ -96,7 +96,7 @@ def page_settings():
                 st.error("Please fill all required fields.")
 
 def memory_settings():
-    st.title("Memory Settings")
+    st.header("Memory Settings")
 
     config = get_config()
     dict_options = ["mmr", "similarity"]
@@ -117,7 +117,7 @@ def memory_settings():
         save_config()
 
 def chat_settings():
-    st.title("Chat Settings")
+    st.header("Chat Settings")
     config=get_config()
 
     with st.form(key="chat_settings"):
@@ -145,3 +145,14 @@ def chat_settings():
             config["chat"]["min_p"] = min_p
             st.success("Settings saved! Please refresh the app to fully apply changes.")
             save_config()
+
+def settings_main():
+    st.title("Settings")
+    git, memory, chat = st.tabs(["Git", "Memory", "Chat"])
+
+    with git:
+        page_settings()
+    with memory:
+        memory_settings()
+    with chat:
+        chat_settings()
