@@ -30,7 +30,7 @@ def get_chat_defaults():
             "min_p": 0.0}
 
 def get_memory_defaults():
-    return {"ret_strat": 0, 
+    return {"ret_strat": "mmr", 
             "k_int": 6, 
             "fetch_k": 20, 
             "lambda_mult": 0.5}
@@ -99,8 +99,9 @@ def memory_settings():
     st.title("Memory Settings")
 
     config = get_config()
+    dict_options = ["mmr", "similarity"]
     options = ["MMR", "Similarity"]
-    ret_strat = st.selectbox("Retrieval Strategy", options, index=config["memory"]["ret_strat"])
+    ret_strat = st.selectbox("Retrieval Strategy", options, index=dict_options.index(config["memory"]["ret_strat"]))
     current_index = options.index(ret_strat)
     k_int = st.number_input("k", 1, 10, value=int(config["memory"]["k_int"]))
     disable_widget = ret_strat != "MMR"
@@ -108,7 +109,7 @@ def memory_settings():
     lambda_mult = st.number_input("Lambda mult", 0.0, 1.0, value=float(config["memory"]["lambda_mult"]), disabled=disable_widget)
     saved = st.button("Save")
     if saved:
-        config["memory"]["ret_strat"] = current_index
+        config["memory"]["ret_strat"] = dict_options[current_index]
         config["memory"]["k_int"] = k_int
         config["memory"]["fetch_k"] = fetch_k
         config["memory"]["lambda_mult"] = lambda_mult
