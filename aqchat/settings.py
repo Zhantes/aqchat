@@ -162,11 +162,10 @@ def settings_main():
         llm_details()
 
 def llm_details():
-    if os.getenv("USE_CHAT_PIPELINE") == "TESTING":
-        st.write("Using Test LLM")
-    else:
+    if os.getenv("USE_CHAT_PIPELINE") == "OLLAMA":
         st.markdown("Using LLM API")
         st.text_input(label="Server",value=os.getenv("OLLAMA_URL"), help="OpenAI Compatible", disabled=True)
         st.text_input(label="Model",value=os.getenv("OLLAMA_MODEL"), disabled=True)
         st.text_input(label="Embedding Model", value=os.getenv("OLLAMA_EMBEDDING_MODEL"), disabled=True)
-    
+    else:
+        st.write("Using Test LLM")

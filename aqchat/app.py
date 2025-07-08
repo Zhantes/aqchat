@@ -2,6 +2,8 @@ import streamlit as st
 import auth
 import chat
 import settings
+from dotenv import load_dotenv
+
 
 login_page = [st.Page(auth.page_login, title="PIN Login")]
 
@@ -15,4 +17,5 @@ if auth.has_authorized():
     pg = st.navigation(pages)
 else:
     pg = st.navigation(login_page)
+load_dotenv()
 pg.run()
