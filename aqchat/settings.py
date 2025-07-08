@@ -100,3 +100,6 @@ def memory_settings():
         config["memory"]["lambda_mult"] = lambda_mult
         st.success("Settings saved! Please refresh the app to fully apply changes.")
         save_config()
+
+def chat_settings():
+    pass
