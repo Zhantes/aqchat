@@ -19,6 +19,9 @@ def get_config() -> Dict[str, Any]:
     return {"repo_url": "", "gh_user": "", "gh_token": "",
             "memory": get_memory_defaults()}
 
+def get_chat_defaults():
+    return {"num_ctx": 2048, "temperature": 0.8, "repeat_last_n": 64, "repeat_penalty": 1.1, "top_k": 40, "top_p": 0.9, "min_p": 0.0}
+
 def get_memory_defaults():
     return {"ret_strat": "MMR", "k_int": 6, "fetch_k": 20, "lambda_mult": 0.5}
 
