@@ -90,14 +90,16 @@ def memory_settings():
     st.title("Memory Settings")
 
     config = get_config()
-    ret_strat = st.selectbox("Retrieval Strategy", ["MMR", "Similarity"], index=config["memory"]["current_index"])
+    options = ["MMR", "Similarity"]
+    ret_strat = st.selectbox("Retrieval Strategy", options, index=config["memory"]["current_index"])
+    current_index = options.index(ret_strat)
     k_int = st.number_input("k", 1, 10, value=int(config["memory"]["k_int"]))
     disable_widget = ret_strat != "MMR"
     fetch_k = st.number_input("Fetch k", 10, 100, value=int(config["memory"]["fetch_k"]) , disabled=disable_widget)
     lambda_mult = st.number_input("Lambda mult", 0.0, 1.0, value=float(config["memory"]["lambda_mult"]), disabled=disable_widget)
     saved = st.button("Save")
     if saved:
-        config["memory"]["current_index"] = 0 if ret_strat == "MMR" else 1
+        config["memory"]["current_index"] = current_index
         config["memory"]["k_int"] = k_int
         config["memory"]["fetch_k"] = fetch_k
         config["memory"]["lambda_mult"] = lambda_mult
