@@ -147,4 +147,12 @@ def chat_settings():
             save_config()
 
 def settings_main():
-    pass
+    st.title("Settings")
+    git, memory, chat = st.tabs(["Git", "Memory", "Chat"])
+
+    with git:
+        page_settings()
+    with memory:
+        memory_settings()
+    with chat:
+        chat_settings()
