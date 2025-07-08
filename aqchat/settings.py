@@ -164,7 +164,6 @@ def settings_main():
 
 def llm_details():
     load_dotenv()
-    print(os.getenv("USE_CHAT_PIPELINE"))
 
     if os.getenv("USE_CHAT_PIPELINE") == "TESTING":
         st.write("Using Test LLM")
