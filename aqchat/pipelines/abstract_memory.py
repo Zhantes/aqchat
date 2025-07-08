@@ -1,5 +1,5 @@
 import os
-from typing import List
+from typing import List, Dict, Any
 
 from langchain_core.documents import Document
 
@@ -45,3 +45,24 @@ class AbstractMemoryPipeline:
         """Invoke the memory retriever and return the resulting documents."""
         raise NotImplementedError
     
+    def set_retrieval_settings(self, retrieval_settings: Dict[str, Any]) -> None:
+        """Update retrieval settings.
+        
+        Retrieval settings MUST be a dict of the form:
+
+        ```
+        {
+            "ret_strat": "mmr", "k": 6, "fetch_k": 20, "lambda_mult": 0.5
+        }
+        ```
+
+        OR:
+        ```
+        {
+            "ret_strat": "similarity", "k": 4
+        }
+        ```
+        """
+        with self.lock:
+            self.retrieval_settings = retrieval_settings
+            self._build_chain()

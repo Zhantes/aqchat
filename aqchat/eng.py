@@ -62,6 +62,18 @@ def get_chat_pipeline(repo_name: str) -> AbstractChatPipeline:
 
     memory = get_memory_pipeline(repo_name)
 
+    # memory pipeline is cached, so we can update memory settings here.
+    # Otherwise, memory settings might never be updated.
+    # Right now, every time a client connects or refreshes the page:
+    # -> memory settings updated
+    # -> chat settings updated
+    memory_settings = settings.get_config().get("memory")
+    if memory_settings:
+        memory.set_retrieval_settings(memory_settings)
+
+    # get chat settings from the config
+    chat_settings = settings.get_config().get("chat")
+
     pipeline_setting = os.environ.get('USE_CHAT_PIPELINE', "TESTING")
 
     # If Ollama is specified in the USE_CHAT_PIPELINE environment
@@ -81,6 +93,7 @@ def get_chat_pipeline(repo_name: str) -> AbstractChatPipeline:
             memory=memory,
             ollama_url=ollama_url,
             ollama_model=ollama_model,
+            chat_settings=chat_settings
         )
     else:
         chat_pipeline = TestingChatPipeline(memory=memory)
