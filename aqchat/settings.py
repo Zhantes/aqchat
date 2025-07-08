@@ -4,6 +4,7 @@ import streamlit as st
 from auth import has_authorized
 from misc import get_data_dir
 from gh import extract_repo_name
+import os
 
 CONFIG_PATH = get_data_dir() / "config.json"
 CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -175,7 +176,8 @@ def chat_settings():
 
 def settings_main():
     st.title("Settings")
-    git, memory, chat = st.tabs(["Git", "Memory", "Chat"])
+    
+    git, memory, chat, api = st.tabs(["Git", "Memory", "Chat", "API"])
 
     with git:
         page_settings()
@@ -183,3 +185,14 @@ def settings_main():
         memory_settings()
     with chat:
         chat_settings()
+    with api:
+        llm_details()
+
+def llm_details():
+    if os.getenv("USE_CHAT_PIPELINE", "") == "OLLAMA":
+        st.markdown("Using LLM API")
+        st.text_input(label="Server",value=os.getenv("OLLAMA_URL", ""), help="OpenAI Compatible", disabled=True)
+        st.text_input(label="Model",value=os.getenv("OLLAMA_MODEL", ""), disabled=True)
+        st.text_input(label="Embedding Model", value=os.getenv("OLLAMA_EMBEDDING_MODEL", ""), disabled=True)
+    else:
+        st.write("Using Test LLM")
