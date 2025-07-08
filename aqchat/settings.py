@@ -143,6 +143,10 @@ def chat_settings():
     st.title("Chat Settings")
     config=get_config()
 
+    # Currently, only temperature setting is actually supported, because of the OpenAI backend layer
+    # not being compatible with many settings which ollama otherwise accepts.
+    # These settings are disabled in the UI.
+
     with st.form(key="chat_settings"):
         with st.container(border=True) as context:
             st.header("Context")
