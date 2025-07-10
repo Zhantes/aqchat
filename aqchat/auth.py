@@ -13,7 +13,7 @@ def get_passcode_pin() -> str:
         passcode_pin = '123'
         print("[auth] WARNING: PIN file not found. Running with insecure passcode.")
     
-    return passcode_pin
+    return passcode_pin.rstrip()
 
 def has_authorized() -> bool:
     session_pin = st.session_state.get("auth_pin", None)
