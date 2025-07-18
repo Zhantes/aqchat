@@ -123,6 +123,9 @@ class CodeMemoryPipeline(AbstractMemoryPipeline):
             chunks = self.text_splitter.split_documents(docs, boundary_detectors=self.boundary_detectors)
             chunks = filter_complex_metadata(chunks)
 
+            # Filter out chunks with content length <= 3
+            chunks = [chunk for chunk in chunks if len(chunk.page_content.strip()) > 3]
+
             # (Re)‑create vector store on disk
             self.vector_store = Chroma.from_documents(
                 documents=chunks,
@@ -170,6 +173,10 @@ class CodeMemoryPipeline(AbstractMemoryPipeline):
             if docs:
                 chunks = self.text_splitter.split_documents(docs, boundary_detectors=self.boundary_detectors)
                 chunks = filter_complex_metadata(chunks)
+
+                # Filter out chunks with content length <= 3
+                chunks = [chunk for chunk in chunks if len(chunk.page_content.strip()) > 3]
+
                 self.vector_store.add_documents(chunks)
 
             # Refresh retriever so it sees the latest state
