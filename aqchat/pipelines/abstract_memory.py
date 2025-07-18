@@ -1,9 +1,10 @@
 import os
 from typing import List, Dict, Any
+from abc import ABC, abstractmethod
 
 from langchain_core.documents import Document
 
-class AbstractMemoryPipeline:
+class AbstractMemoryPipeline(ABC):
     """This interface represents a pipeline for indexing
     and maintaining a database over some kind of file system which
     backs memory retrieval.
@@ -17,33 +18,40 @@ class AbstractMemoryPipeline:
     # PUBLIC API
     # --------------------------------------------------------------
 
+    @abstractmethod
     def ingest(self, repo_path: str | os.PathLike) -> None:
         """Walk *repo_path*, index eligible files, and build the retrieval chain."""
-        raise NotImplementedError
+        pass
 
+    @abstractmethod  
     def update_files(self, *file_paths: str | os.PathLike) -> None:
         """(Re)-index *file_paths* that were modified since the last ingest."""
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def clear(self) -> None:
         """Clear *in-memory* state - keep the persisted DB intact."""
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def has_vector_db(self) -> bool:
         """Return True if there is a loaded vector store present."""
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def clear_vector_db(self) -> None:
         """Delete the persisted database on disk and reset state."""
-        raise NotImplementedError
-    
+        pass
+
+    @abstractmethod    
     def ready_for_retrieval(self) -> bool:
         """Returns True if the pipeline is ready to be used."""
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def invoke(self, input: str) -> List[Document]:
         """Invoke the memory retriever and return the resulting documents."""
-        raise NotImplementedError
+        pass
     
     def set_retrieval_settings(self, retrieval_settings: Dict[str, Any]) -> None:
         """Update retrieval settings.
