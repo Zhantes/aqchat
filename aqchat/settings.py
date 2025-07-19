@@ -51,7 +51,8 @@ def get_chat_defaults():
             "repeat_penalty": 1.1, 
             "top_k": 40, 
             "top_p": 0.9, 
-            "min_p": 0.0}
+            "min_p": 0.0,
+            "system_prompt": ""}
 
 def get_memory_defaults():
     return {"ret_strat": "mmr", 
@@ -143,36 +144,47 @@ def memory_settings():
 def chat_settings():
     st.header("Chat Settings")
     config=get_config()
+    general_tab, advanced_tab = st.tabs(["General","Advanced"])
 
     # Currently, only temperature setting is actually supported, because of the OpenAI backend layer
     # not being compatible with many settings which ollama otherwise accepts.
     # These settings are disabled in the UI.
 
-    with st.form(key="chat_settings"):
-        with st.container(border=True) as context:
-            st.header("Context")
-            num_ctx = st.number_input("num_ctx", 512, 131072, value=int(config["chat"]["num_ctx"]), disabled=True)
+    with general_tab:
+        with st.form("general_chat"):
+            st.header("System Prompt")
+            system_prompt = st.text_area("Use this field to enter any information the language model should know:", 
+                                            value=str(config["chat"]["system_prompt"]))
+            saved = st.form_submit_button("Save")
+            if saved:
+                config["chat"]["system_prompt"] = system_prompt
+                st.success("Settings saved! Please refresh the app to fully apply changes.")
+                save_config()
+    with advanced_tab:
+        with st.form(key="chat_settings"):
+            with st.container(border=True) as context:
+                st.header("Context")
+                num_ctx = st.number_input("num_ctx", 512, 131072, value=int(config["chat"]["num_ctx"]), disabled=True)
 
-        with st.container(border=True) as generation:
-            st.header("Generation")
-            temperature = st.number_input("temperature", 0.0, 1.0, value=float(config["chat"]["temperature"]))
-            repeat_last_n = st.number_input("repeat_last_n", -1, 512, value=int(config["chat"]["repeat_last_n"]), disabled=True)
-            repeat_penalty = st.number_input("repeat_penalty", 0.0, 2.0, value=float(config["chat"]["repeat_penalty"]), disabled=True)
-            top_k = st.number_input("top_k", 0, 100, value=int(config["chat"]["top_k"]), disabled=True)
-            top_p = st.number_input("top_p", 0.0, 1.0, value=float(config["chat"]["top_p"]), disabled=True)
-            min_p = st.number_input("min_p", 0.0, 1.0, value=float(config["chat"]["min_p"]), disabled=True)
-            
-        saved = st.form_submit_button("Save")
-        if saved:
-            config["chat"]["num_ctx"] = num_ctx
-            config["chat"]["temperature"] = temperature
-            config["chat"]["repeat_last_n"] = repeat_last_n
-            config["chat"]["repeat_penalty"] = repeat_penalty
-            config["chat"]["top_k"] = top_k
-            config["chat"]["top_p"] = top_p
-            config["chat"]["min_p"] = min_p
-            st.success("Settings saved! Please refresh the app to fully apply changes.")
-            save_config()
+            with st.container(border=True) as generation:
+                st.header("Generation")
+                temperature = st.number_input("temperature", 0.0, 1.0, value=float(config["chat"]["temperature"]))
+                repeat_last_n = st.number_input("repeat_last_n", -1, 512, value=int(config["chat"]["repeat_last_n"]), disabled=True)
+                repeat_penalty = st.number_input("repeat_penalty", 0.0, 2.0, value=float(config["chat"]["repeat_penalty"]), disabled=True)
+                top_k = st.number_input("top_k", 0, 100, value=int(config["chat"]["top_k"]), disabled=True)
+                top_p = st.number_input("top_p", 0.0, 1.0, value=float(config["chat"]["top_p"]), disabled=True)
+                min_p = st.number_input("min_p", 0.0, 1.0, value=float(config["chat"]["min_p"]), disabled=True)                
+            saved = st.form_submit_button("Save")
+            if saved:
+                config["chat"]["num_ctx"] = num_ctx
+                config["chat"]["temperature"] = temperature
+                config["chat"]["repeat_last_n"] = repeat_last_n
+                config["chat"]["repeat_penalty"] = repeat_penalty
+                config["chat"]["top_k"] = top_k
+                config["chat"]["top_p"] = top_p
+                config["chat"]["min_p"] = min_p
+                st.success("Settings saved! Please refresh the app to fully apply changes.")
+                save_config()
 
 def settings_main():
     st.title("Settings")
