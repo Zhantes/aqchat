@@ -1,8 +1,9 @@
 from typing import Dict, List, Iterator
 
 from langchain_core.messages.base import BaseMessageChunk
+from abc import ABC, abstractmethod
 
-class AbstractChatPipeline:
+class AbstractChatPipeline(ABC):
     """This interface represents an LLM chat pipeline which can be
     queried with a memory interface and a current message list.
 
@@ -15,6 +16,7 @@ class AbstractChatPipeline:
     # PUBLIC API
     # --------------------------------------------------------------
 
+    @abstractmethod
     def query(self, messages: List[Dict[str, str]]) -> Iterator[BaseMessageChunk]:
         """Stream an answer for *messages*.
 
@@ -22,6 +24,6 @@ class AbstractChatPipeline:
         ``[{"role": "user" | "assistant" | "system", "content": "..."}, ...]``.
         The final user message is treated as the question for retrieval.
         """
-        raise NotImplementedError
+        pass
 
     
