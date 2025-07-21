@@ -52,7 +52,7 @@ def get_chat_defaults():
             "top_k": 40, 
             "top_p": 0.9, 
             "min_p": 0.0,
-            "system_prompt": ""}
+            "system_prompt": "You are an assistant for question-answering tasks in a codebase."}
 
 def get_memory_defaults():
     return {"ret_strat": "mmr", 
