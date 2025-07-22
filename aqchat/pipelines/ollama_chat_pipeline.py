@@ -53,7 +53,7 @@ class OllamaChatPipeline(AbstractChatPipeline):
         
             self.tools.append(search)
 
-        system_message = "You are an assistant for question-answering tasks in a codebase."
+        system_message = chat_settings.get("system_prompt")
 
         self.agent_executor = create_react_agent(self.model, self.tools, prompt=system_message)
 
