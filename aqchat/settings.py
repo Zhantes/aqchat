@@ -30,7 +30,7 @@ def add_missing_defaults(config: Dict[str, Any], defaults: Dict[str, Any]) -> No
 @st.cache_resource
 def get_config() -> Dict[str, Any]:
     config_defaults = {
-        "repo_url": "", "gh_user": "", "gh_token": "",
+        "repo_url": "", "repo_branch": "main", "gh_user": "", "gh_token": "",
         "memory": get_memory_defaults(),
         "chat": get_chat_defaults()
     }
@@ -102,17 +102,19 @@ def page_settings():
     config = get_config()
     with st.form(key="settings_form"):
         repo_url = st.text_input("Repository URL :red[*]", value=config.get("repo_url", ""))
+        repo_branch = st.text_input("Repository Branch :red[*]", value=config.get("repo_branch"))
         gh_user = st.text_input("Your Github Username :red[*]", value=config.get("gh_user", ""))
         gh_token = st.text_input("Github PAT", help="Personal Access Token, only required for private repositories.", value=config.get("gh_token", ""), type="password") # TODO: Find a way to align help tooltip so it's closer to label. Also add instructions on how to find the PAT, I couldn't make the tooltip multi-line.
         saved = st.form_submit_button("Save")
         if saved:
-            if repo_url and gh_user:
+            if repo_url and repo_branch and gh_user:
                 try:
                     extract_repo_name(repo_url)
                 except:
                     st.error("Invalid repository URL, please verify the URL and try again.")
                 else:
                     config["repo_url"] = repo_url
+                    config["repo_branch"] = repo_branch
                     config["gh_user"] = gh_user
                     config["gh_token"] = gh_token
                     st.success("Settings saved! Please refresh the app to fully apply changes.")
